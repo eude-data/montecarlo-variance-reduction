@@ -1,4 +1,5 @@
-# Monte Carlo — Réduction de Variance 🎲
+# Monte Carlo - Réduction de Variance 🎲
+
 
 Implémentation et comparaison de techniques de réduction de variance pour l'estimation Monte Carlo, appliquées au pricing d'options sous Black-Scholes.
 
