@@ -14,7 +14,7 @@ Estimation de $\int_0^{10} x^2 e^x \, dx$ par simulation uniforme. Mise en évid
 
 #### 2. Variables antithétiques
 
-Principe : remplacer $U$ par la moyenne de $f(U)$ et $f(1-U)$ pour exploiter la corrélation négative.
+Principe : remplacer U par la moyenne de $f(U)$ et $f(1-U)$ pour exploiter la corrélation négative.
 
 Comparaison sur call vanille ATM — réduction significative de la variance par rapport à l'estimateur simple.
 
