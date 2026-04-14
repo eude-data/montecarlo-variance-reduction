@@ -28,7 +28,8 @@ $$\hat{C}_{\text{IS}} = e^{-rT} \frac{1}{N} \sum_{i=1}^{N} (S_T^i - K)^{+} \exp\
 
 Comparaison IS vs estimateur naïf sur un call deep OTM avec $K = 20$, $S_0 = 10$ — gain drastique en variance : $10^4$ simulations suffisent contre $10^7$ pour l'estimateur simple.
 
-#### 4. Option barrière — Put Down-and-In (PDI)
+#### 4. Option barrière - Put Down-and-In (PDI)
+
 
 Pricing d'un put avec barrière activante inférieure par simulation de trajectoires complètes.
 
