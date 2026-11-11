@@ -1,70 +1,55 @@
-# Monte Carlo - Réduction de Variance 🎲
+# Monte Carlo et réduction de variance
 
+Projet réalisé en M2 ISIFAR (Université Paris Cité). L'objectif est de comparer l'estimateur Monte Carlo classique à deux techniques de réduction de variance, les variables antithétiques et l'échantillonnage préférentiel (importance sampling), puis de pricer une option barrière par simulation de trajectoires.
 
-Implémentation et comparaison de techniques de réduction de variance pour l'estimation Monte Carlo, appliquées au pricing d'options sous Black-Scholes.
+Tout le code est dans `montecarlo.ipynb`. Pour chaque méthode, l'estimation est répétée plusieurs centaines de fois et on compare les histogrammes obtenus.
 
----
+## 1. Calcul d'une intégrale
 
-## Contenu
+On estime
 
-### `montecarlo.ipynb`
+$$I = \int_0^{10} x^2 e^x\, dx = 82\, e^{10} - 2 \approx 1\,806\,168$$
 
-#### 1. Monte Carlo naïf
+En posant $x = 10u$, on a $I = 10\, \mathbb{E}\left[f(10U)\right]$ avec $U$ uniforme sur $[0, 1]$, d'où l'estimateur simple calculé sur 10 000 tirages.
 
-Estimation de $\int_0^{10} x^2 e^x \, dx$ par simulation uniforme. Mise en évidence de la variance de l'estimateur de base.
+La version antithétique utilise la même série de tirages $U$ et leur symétrique $1 - U$ :
 
-#### 2. Variables antithétiques
+$$\hat{I}_{\text{anti}} = \frac{10}{2n} \sum_{i=1}^{n} \left[f(10U_i) + f(10(1 - U_i))\right]$$
 
-Principe : remplacer U par la moyenne de $f(U)$ et $f(1-U)$ pour exploiter la corrélation négative.
+En relançant le code sur 100 répétitions, l'écart-type passe d'environ 40 000 à environ 22 000.
 
-Comparaison sur call vanille ATM — réduction significative de la variance par rapport à l'estimateur simple.
+## 2. Variables antithétiques sur un call européen
 
-#### 3. Importance Sampling
+Call de Black-Scholes avec $S_0 = 10$, $r = 0$, $\sigma = 0.2$, $T = 1$. On remplace le brownien $W_T$ par $-W_T$ pour obtenir une seconde trajectoire, puis on fait la moyenne des deux payoffs.
 
-Changement de mesure pour les options deep OTM, où $\mathbb{P}(S_T > K) \ll 1$.
+- Call à la monnaie ($K = 10$) : l'histogramme de l'estimateur antithétique est nettement plus resserré, avec un écart-type environ divisé par 2.
+- Call très en dehors de la monnaie ($K = 25$) : la méthode ne sert plus à rien. Le strike n'est presque jamais atteint et 96.2 % des estimations sont exactement nulles.
 
-On simule sous une mesure $\tilde{\mathbb{P}}$ avec drift $\alpha > r$, puis on corrige par le rapport de Radon-Nikodym. En notant $\theta = \frac{\alpha - r}{\sigma}$ :
+## 3. Importance sampling
 
-$$\hat{C}_{\text{IS}} = e^{-rT} \frac{1}{N} \sum_{i=1}^{N} (S_T^i - K)^{+} \exp\left(-\theta W_T^i - \frac{\theta^2 T}{2}\right)$$
+Ce dernier cas motive le changement de mesure. On simule le sous-jacent avec un drift $\alpha$ plus grand que $r$, ce qui envoie beaucoup plus de trajectoires au-dessus du strike, puis on corrige chaque payoff par la densité de Radon-Nikodym. Avec $\theta = (\alpha - r)/\sigma$ :
 
-Comparaison IS vs estimateur naïf sur un call deep OTM avec $K = 20$, $S_0 = 10$ — gain drastique en variance : $10^4$ simulations suffisent contre $10^7$ pour l'estimateur simple.
+$$\hat{C}_{\text{IS}} = e^{-rT}\, \frac{1}{n} \sum_{i=1}^{n} \left(S_T^{(i)} - K\right)^+ \exp\left(-\theta W_T^{(i)} - \frac{\theta^2 T}{2}\right)$$
 
-#### 4. Option barrière - Put Down-and-In (PDI)
+Test sur un call avec $K = 20$ ($S_0 = 10$, $\sigma = 0.2$, $T = 1$), dont le prix exact vaut 0.000189. Avec $\alpha = 0.5$, l'importance sampling sur 10 000 tirages donne une dispersion comparable à celle de l'estimateur simple sur 10 millions de tirages, soit environ 1 000 fois moins de simulations.
 
+## 4. Option barrière : put down-and-in
 
-Pricing d'un put avec barrière activante inférieure par simulation de trajectoires complètes.
+Le put n'est activé que si le sous-jacent passe sous la barrière $B$ avant l'échéance :
 
-Le payoff est :
+$$\text{payoff} = (K - S_T)^+\, \mathbf{1}_{\left\lbrace \min_{t \le T} S_t \le B \right\rbrace}$$
 
-$$\text{Payoff} = (K - S_T)^{+} \times \mathbf{1}[\min_{t \leq T} S_t \leq B]$$
+Les trajectoires sont simulées sur 1 000 pas de temps. Avec $S_0 = K = 10$, $B = 6$, $r = 0$, $\sigma = 0.2$ et $T = 1$, on obtient un prix d'environ 0.055. Le minimum n'est observé qu'aux dates de la grille, donc l'estimateur sous-estime légèrement la probabilité de toucher la barrière.
 
-Discrétisation de $[0, T]$ en 1000 pas, avec visualisation des trajectoires simulées.
+## Récapitulatif
 
----
-
-## Résultats illustratifs
-
-| Méthode | Option | Simulations | Variance |
+| Cas | Méthode | Tirages | Résultat |
 |---|---|---|---|
-| Monte Carlo naïf | Call ATM | 10 000 | référence |
-| Variables antithétiques | Call ATM | 10 000 | ↓ significative |
-| MC naïf | Call OTM ($K=20$) | 10 000 000 | élevée |
-| Importance Sampling | Call OTM ($K=20$) | 10 000 | ↓↓ drastique |
+| Intégrale | simple, puis antithétique | 10 000 | écart-type divisé par 2 environ |
+| Call $K = 10$ | simple, puis antithétique | 10 000 | écart-type divisé par 2 environ |
+| Call $K = 25$ | antithétique | 10 000 | 96.2 % d'estimations nulles |
+| Call $K = 20$ | simple | 10 000 000 | dispersion de référence |
+| Call $K = 20$ | importance sampling | 10 000 | dispersion comparable |
+| Put down-and-in | trajectoires, 1 000 pas | 10 000 | environ 0.055 |
 
----
-
-## Concepts clés
-
-- **Estimateur Monte Carlo** et loi des grands nombres
-- **Variables antithétiques** : exploitation de la corrélation négative
-- **Importance Sampling** : changement de mesure, théorème de Girsanov
-- **Options barrières** : simulation de trajectoires, temps de premier passage
-
----
-
-## Stack
-
-```python
-langages   = ["Python"]
-librairies = ["numpy", "scipy", "matplotlib"]
-```
+Bibliothèques : numpy, scipy, matplotlib.
